@@ -3,6 +3,7 @@ import 'coin_data.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:io' show Platform;
 import 'coin_card.dart';
+import 'dart:async';
 
 class PriceScreen extends StatefulWidget {
   @override
@@ -10,11 +11,19 @@ class PriceScreen extends StatefulWidget {
 }
 
 class _PriceScreenState extends State<PriceScreen> {
-  String selectedCurrency = 'USD';
+  static StreamController<String> streamController =
+      StreamController<String>.broadcast();
   int selectedIndex = 0;
-  CoinCard btc = CoinCard(coin: 'BTC');
-  CoinCard eth = CoinCard(coin: 'ETH');
-  CoinCard ltc = CoinCard(coin: 'LTC');
+  CoinCard btc =
+      CoinCard(coin: 'BTC', sc: streamController.stream.asBroadcastStream());
+  CoinCard eth =
+      CoinCard(coin: 'ETH', sc: streamController.stream.asBroadcastStream());
+  CoinCard ltc =
+      CoinCard(coin: 'LTC', sc: streamController.stream.asBroadcastStream());
+  CoinCard nxt =
+      CoinCard(coin: 'XRP', sc: streamController.stream.asBroadcastStream());
+  static String current = 'USD';
+  static String last = 'USD';
 
   @override
   Widget build(BuildContext context) {
@@ -29,13 +38,14 @@ class _PriceScreenState extends State<PriceScreen> {
           btc,
           eth,
           ltc,
+          nxt,
           Container(
             height: 150.0,
             alignment: Alignment.center,
             padding: EdgeInsets.only(bottom: 30.0),
             color: Colors.lightBlue,
             child: (Platform.isIOS
-                ? buildCupertinoPicker()
+                ? buildDropdownButton() /* buildCupertinoPicker() */
                 : buildDropdownButton()),
           ),
         ],
@@ -43,38 +53,23 @@ class _PriceScreenState extends State<PriceScreen> {
     );
   }
 
-  CupertinoPicker buildCupertinoPicker() {
-    return CupertinoPicker(
-        itemExtent: 32.0,
-        onSelectedItemChanged: (selectedIndex) {
-          print(selectedIndex);
-          setState(() {
-            selectedCurrency = currenciesList[selectedIndex];
-          });
-        },
-        children: getCupertinoChildren());
-  }
-
-  List<Widget> getCupertinoChildren() {
-    List<Widget> res = List<Text>();
-    for (String item in currenciesList) {
-      res.add(Text(item));
-    }
-    return res;
-  }
-
   DropdownButton<String> buildDropdownButton() {
     return DropdownButton<String>(
-      value: selectedCurrency,
+      value: current,
       items: buildDropdownMenuItem(),
       onChanged: (currency) {
-        btc.changeRate(currency);
-        eth.changeRate(currency);
-        ltc.changeRate(currency);
+        if (current != currency) {
+          last = current;
+          setState(() {
+            current = currency;
+          });
+          streamController.stream.asBroadcastStream();
+          streamController.sink.add(current);
+        }
 //        print(value);
-        setState(() {
-          selectedCurrency = currency;
-        });
+//        setState(() {
+//          selectedCurrency = currency;
+//        });
       },
     );
   }
@@ -83,6 +78,26 @@ class _PriceScreenState extends State<PriceScreen> {
     List<DropdownMenuItem<String>> res = new List<DropdownMenuItem<String>>();
     for (String item in currenciesList) {
       res.add(DropdownMenuItem(child: Text(item), value: item));
+    }
+    return res;
+  }
+
+  CupertinoPicker buildCupertinoPicker() {
+    return CupertinoPicker(
+        itemExtent: 32.0,
+        onSelectedItemChanged: (selectedIndex) {
+          print(selectedIndex);
+//          setState(() {
+          current = currenciesList[selectedIndex];
+//          });
+        },
+        children: getCupertinoChildren());
+  }
+
+  List<Widget> getCupertinoChildren() {
+    List<Widget> res = List<Text>();
+    for (String item in currenciesList) {
+      res.add(Text(item));
     }
     return res;
   }

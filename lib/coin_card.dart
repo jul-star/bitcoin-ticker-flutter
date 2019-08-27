@@ -1,30 +1,38 @@
 import 'package:flutter/material.dart';
 import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
+import 'dart:async';
 
 class CoinCard extends StatefulWidget {
-  CoinCard({@required this.coin});
+  CoinCard({@required this.coin, @required this.sc});
   final coin;
-  void changeRate(String currency) {
-    _CoinCardState(coin, currency, '1 $coin ? $currency');
-    print('CoinCard: rate: $currency');
-  }
+  final Stream<String> sc;
 
   @override
-  _CoinCardState createState() => _CoinCardState(coin, 'USD', '');
+  _CoinCardState createState() =>
+      _CoinCardState(coin, 'USD', '1 $coin = ? USD');
 }
 
 class _CoinCardState extends State<CoinCard> {
-  _CoinCardState(this.coin, this.currency, this.rate) {
-    getRate(coin, currency);
-  }
+  _CoinCardState(this.coin, this.currency, this.rate);
   String coin;
   String currency;
   String rate;
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getRate(coin, currency);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    widget.sc.listen((data) {
+      print('Listen data: $data');
+      getRate(coin, data);
+    });
     return Padding(
-      padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
+      padding: EdgeInsets.fromLTRB(8.0, 18.0, 18.0, 0),
       child: Card(
         color: Colors.lightBlueAccent,
         elevation: 5.0,
@@ -32,7 +40,7 @@ class _CoinCardState extends State<CoinCard> {
           borderRadius: BorderRadius.circular(10.0),
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
+          padding: EdgeInsets.symmetric(vertical: 5.0, horizontal: 28.0),
           child: Text(
             rate,
             textAlign: TextAlign.center,
@@ -55,7 +63,7 @@ class _CoinCardState extends State<CoinCard> {
       double rt = jsonResponse['bid'];
       rt ?? 0;
       setState(() {
-        rate = '1 $coin = ' + rt.toString() + currency;
+        rate = '1 $coin = ' + rt.toString() + ' ' + currency;
       });
     } else {
       print('Error');
